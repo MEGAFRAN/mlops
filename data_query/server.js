@@ -1,6 +1,8 @@
-// server.js
 const express = require('express');
 const { Pool } = require('pg');
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -65,6 +67,43 @@ app.post('/elements', async (req, res) => {
       client.release();
     }
 });
+
+// New route to download CSV
+app.get('/download-csv', async (req, res) => {
+    try {
+      // Query the database
+      const { rows } = await pool.query('SELECT * FROM kitchen_elements');
+  
+      // Define the path and header for the CSV file
+      const csvPath = path.join(__dirname, 'kitchen_elements.csv');
+      const csvWriter = createCsvWriter({
+        path: csvPath,
+        header: [
+          { id: 'id', title: 'ID' },
+          { id: 'name', title: 'Name' },
+          { id: 'quantity', title: 'Quantity' },
+          { id: 'notes', title: 'Notes' }
+        ]
+      });
+  
+      // Write data to CSV file
+      await csvWriter.writeRecords(rows);
+  
+      // Set headers to prompt download on the client side
+      res.download(csvPath, 'kitchen_elements.csv', (err) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send('Server error');
+        }
+  
+        // Optionally delete the file after sending it
+        fs.unlinkSync(csvPath);
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Server error');
+    }
+  });
 
 // Start server
 const PORT = process.env.PORT || 3000;
