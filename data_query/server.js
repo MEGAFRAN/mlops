@@ -47,14 +47,23 @@ app.get('/elements', async (req, res) => {
 });
 
 app.post('/elements', async (req, res) => {
-  try {
-    const { name, quantity, notes } = req.body;
-    const { rows } = await pool.query('INSERT INTO kitchen_elements(name, quantity, notes) VALUES($1, $2, $3) RETURNING *', [name, quantity, notes]);
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const insertPromises = req.body.map(async ({ name, quantity, notes }) => {
+        const { rows } = await client.query('INSERT INTO kitchen_elements(name, quantity, notes) VALUES($1, $2, $3) RETURNING *', [name, quantity, notes]);
+        return rows[0];
+      });
+      const insertedElements = await Promise.all(insertPromises);
+      await client.query('COMMIT');
+      res.status(201).json(insertedElements);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      console.error(err);
+      res.status(500).send('Server error');
+    } finally {
+      client.release();
+    }
 });
 
 // Start server

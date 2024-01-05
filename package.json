@@ -1,0 +1,17 @@
+{
+  "name": "main-app",
+  "version": "1.0.0",
+  "description": "main app",
+  "main": "",
+  "scripts": {
+    "docker-up": "docker compose up",
+    "docker-down": "docker compose down",
+    "docker-build": "docker compose up --build"
+  },
+  "author": "Your Name",
+  "license": "ISC",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}
